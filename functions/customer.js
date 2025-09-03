@@ -7,17 +7,20 @@ export async function onRequestPut(context) {
     return new Response(JSON.stringify({ error: "Missing environment variables" }), { status: 500 });
   }
 
-  // Manual extraction of customerId from URL
+  // Extract customerId from URL
   const url = new URL(context.request.url);
-  const pathSegments = url.pathname.split('/').filter(Boolean); // remove empty segments
-  const customerId = pathSegments[pathSegments.length - 1]; // last segment
+  const pathSegments = url.pathname.split('/').filter(Boolean); 
+  const customerId = pathSegments[pathSegments.length - 1]; 
 
   if (!customerId || isNaN(customerId)) {
     return new Response(JSON.stringify({ error: "Invalid customerId" }), { status: 400 });
   }
 
-  const apiUrl = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers/${customerId}`;
-  const body = JSON.stringify({ customer_group_id: APPROVED_CUSTOMER_ID });
+  const apiUrl = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers`;
+  const body = JSON.stringify({
+    id: parseInt(customerId, 10), // required by BigCommerce
+    customer_group_id: APPROVED_CUSTOMER_ID
+  });
 
   try {
     const response = await fetch(apiUrl, {
