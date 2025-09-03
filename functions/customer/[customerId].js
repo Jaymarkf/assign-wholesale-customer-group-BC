@@ -1,5 +1,5 @@
 export async function onRequestPut(context) {
-  const { customerId } = context.params; // dynamic segment from URL
+  const { customerId } = context.params;
   const BC_STORE_HASH = context.env["store-hash"];
   const BC_API_TOKEN = context.env["X-Auth-Token"];
   const APPROVED_CUSTOMER_ID = context.env["approved-customer-group-id"];
@@ -19,10 +19,14 @@ export async function onRequestPut(context) {
   }
 
   const apiUrl = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers`;
-  const body = JSON.stringify({
-    id: parseInt(customerId, 10), // required by BigCommerce
-    customer_group_id: parseInt(APPROVED_CUSTOMER_ID, 10)
-  });
+
+  // BigCommerce expects an array of objects
+  const body = JSON.stringify([
+    {
+      id: parseInt(customerId, 10),
+      customer_group_id: parseInt(APPROVED_CUSTOMER_ID, 10)
+    }
+  ]);
 
   try {
     const response = await fetch(apiUrl, {
