@@ -1,3 +1,11 @@
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*", // or "https://alwaysopencommerce.com" for stricter
+    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
 export async function onRequestGet(context) {
   const { customerId } = context.params;
   const BC_STORE_HASH = context.env["store-hash"];
@@ -7,30 +15,28 @@ export async function onRequestGet(context) {
   if (!BC_STORE_HASH || !BC_API_TOKEN || !APPROVED_CUSTOMER_ID) {
     return new Response(
       JSON.stringify({ error: "Missing environment variables" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders() } }
     );
   }
 
   if (!customerId || isNaN(customerId)) {
     return new Response(
       JSON.stringify({ error: "Invalid customerId" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders() } }
     );
   }
 
   const apiUrl = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers`;
-
-  // BigCommerce expects an array of objects
   const body = JSON.stringify([
     {
       id: parseInt(customerId, 10),
-      customer_group_id: parseInt(APPROVED_CUSTOMER_ID, 10)
-    }
+      customer_group_id: parseInt(APPROVED_CUSTOMER_ID, 10),
+    },
   ]);
 
   try {
     const response = await fetch(apiUrl, {
-      method: "PUT", // 👈 Worker still does PUT
+      method: "PUT", // internally still PUT
       headers: {
         "X-Auth-Token": BC_API_TOKEN,
         "Accept": "application/json",
@@ -42,12 +48,20 @@ export async function onRequestGet(context) {
     const text = await response.text();
     return new Response(text, {
       status: response.status,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json", ...corsHeaders() },
     });
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Exception", message: err.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders() } }
     );
   }
+}
+
+// Handle preflight OPTIONS requests
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(),
+  });
 }
