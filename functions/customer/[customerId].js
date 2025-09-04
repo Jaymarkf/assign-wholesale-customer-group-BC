@@ -30,7 +30,7 @@ export async function onRequestGet(context) {
 
   try {
     const response = await fetch(apiUrl, {
-      method: "PUT", // 👈 always update on GET
+      method: "PUT", // 👈 Worker still does PUT
       headers: {
         "X-Auth-Token": BC_API_TOKEN,
         "Accept": "application/json",
