@@ -1,4 +1,7 @@
 export async function onRequestGet(context) {
+  const { request, params } = context;
+  const customerId = params.customerId; // assumes route like /customer/[customerId]
+
   const BC_STORE_HASH = context.env["store-hash"];
   const BC_API_TOKEN = context.env["X-Auth-Token"];
 
@@ -12,6 +15,39 @@ export async function onRequestGet(context) {
     );
   }
 
+  // If a customerId exists in the path -> do a PUT update
+  if (customerId) {
+    const url = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers/${customerId}`;
+    const body = {
+      customer_group_id: 3 // 👈 test payload
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "X-Auth-Token": BC_API_TOKEN,
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const text = await response.text();
+
+      return new Response(text, {
+        status: response.status,
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: "Exception in PUT", message: err.message }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
+
+  // Otherwise -> do your original GET
   const url = `https://api.bigcommerce.com/stores/${BC_STORE_HASH}/v3/customers`;
 
   try {
@@ -38,27 +74,13 @@ export async function onRequestGet(context) {
       );
     }
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to parse JSON",
-          raw: text
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(JSON.stringify(data, null, 2), {
+    return new Response(text, {
       status: 200,
       headers: { "Content-Type": "application/json" }
     });
-
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Exception", message: err.message }),
+      JSON.stringify({ error: "Exception in GET", message: err.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
